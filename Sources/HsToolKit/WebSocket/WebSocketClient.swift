@@ -4,6 +4,7 @@ import NIOConcurrencyHelpers
 import NIOHTTP1
 import NIOWebSocket
 import NIOSSL
+import Atomics
 
 final class WebSocketClient {
     enum Error: Swift.Error, LocalizedError {
@@ -36,7 +37,7 @@ final class WebSocketClient {
     let eventLoopGroupProvider: EventLoopGroupProvider
     let group: EventLoopGroup
     let configuration: Configuration
-    let isShutdown = NIOAtomic.makeAtomic(value: false)
+    let isShutdown = ManagedAtomic(false)
 
     init(eventLoopGroupProvider: EventLoopGroupProvider, configuration: Configuration = .init()) {
         self.eventLoopGroupProvider = eventLoopGroupProvider
@@ -93,7 +94,7 @@ final class WebSocketClient {
                     if scheme == "wss" {
                         do {
                             let context = try NIOSSLContext(
-                                    configuration: self.configuration.tlsConfiguration ?? .forClient()
+                                configuration: self.configuration.tlsConfiguration ?? .makeClientConfiguration()
                             )
                             let tlsHandler = try NIOSSLClientHandler(context: context, serverHostname: host)
                             return channel.pipeline.addHandler(tlsHandler).flatMap {
@@ -127,7 +128,7 @@ final class WebSocketClient {
         case .shared:
             return
         case .createNew:
-            if isShutdown.compareAndExchange(expected: false, desired: true) {
+            if isShutdown.compareExchange(expected: false, desired: true, ordering: .relaxed).exchanged.self {
                 try group.syncShutdownGracefully()
             } else {
                 throw WebSocketClient.Error.alreadyShutdown
@@ -140,7 +141,7 @@ final class WebSocketClient {
         case .shared:
             return
         case .createNew:
-            assert(isShutdown.load(), "WebSocketClient not shutdown before deinit.")
+            assert(isShutdown.load(ordering: .relaxed), "WebSocketClient not shutdown before deinit.")
         }
     }
 }
