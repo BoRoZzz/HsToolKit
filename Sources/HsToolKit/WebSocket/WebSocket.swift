@@ -71,14 +71,14 @@ public class WebSocket: NSObject {
             })
             .disposed(by: disposeBag)
 
-        BackgroundModeObserver.shared
-            .foregroundFromExpiredBackgroundObservable
-            .observeOn(ConcurrentDispatchQueueScheduler(qos: .userInitiated))
-            .subscribe(onNext: { [weak self] _ in
-                self?.disconnect(code: .normalClosure, error: WebSocketState.DisconnectError.socketDisconnected(reason: .appInBackgroundMode))
-                self?.connect()
-            })
-            .disposed(by: disposeBag)
+//        BackgroundModeObserver.shared
+//            .foregroundFromExpiredBackgroundObservable
+//            .observeOn(ConcurrentDispatchQueueScheduler(qos: .userInitiated))
+//            .subscribe(onNext: { [weak self] _ in
+//                self?.disconnect(code: .normalClosure, error: WebSocketState.DisconnectError.socketDisconnected(reason: .appInBackgroundMode))
+//                self?.connect()
+//            })
+//            .disposed(by: disposeBag)
     }
 
     deinit {
